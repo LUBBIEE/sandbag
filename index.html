@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>샌드백 복싱장</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;color:#eee;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{display:block;width:100%;height:100%}
+.ov{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;pointer-events:none;padding:20px}
+.ov>*{pointer-events:auto}
+.btn{background:#b3261e;color:#fff;border:0;padding:13px 28px;font-size:18px;font-weight:800;border-radius:6px;letter-spacing:1px}
+.btn:active{transform:scale(.96)}
+input{font-size:20px;padding:12px 14px;border-radius:6px;border:2px solid #555;background:#161412;color:#fff;text-align:center;width:min(280px,80vw);outline:none}
+h1{margin:0;font-family:Impact,sans-serif;font-size:42px;letter-spacing:3px;color:#d9d2c3;text-shadow:0 0 18px #b3261e}
+.sm{font-size:14px;color:#aaa}
+#top{position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 10px);display:flex;justify-content:space-between;padding:0 12px;pointer-events:none}
+#top button{pointer-events:auto;width:42px;height:42px;border-radius:50%;background:#000a;border:2px solid #777;color:#ddd;display:flex;align-items:center;justify-content:center;padding:0;font-size:20px}
+#best{font-family:Impact,sans-serif;font-size:18px;color:#ffd24a;text-shadow:0 2px 0 #300;letter-spacing:1px}
+#combo{position:fixed;top:calc(env(safe-area-inset-top,0px) + 8px);left:50%;transform:translateX(-50%);text-align:center;opacity:0;transition:opacity .2s;pointer-events:none;font-family:Impact,sans-serif}
+#cn{font-size:64px;line-height:1;color:#ffd24a;text-shadow:0 0 14px #b3261e,0 3px 0 #300;display:inline-block}
+#cl{font-size:18px;letter-spacing:4px;color:#eee}
+#res{position:fixed;top:30%;left:0;right:0;text-align:center;font-family:Impact,sans-serif;font-size:min(22vw,110px);color:#ffd24a;text-shadow:0 0 24px #b3261e,0 5px 0 #300;opacity:0;pointer-events:none}
+#res.go{animation:rs 1.9s ease-out forwards}
+#msg{position:fixed;top:46%;left:0;right:0;text-align:center;font-size:min(10vw,48px);font-weight:900;color:#fff;text-shadow:0 0 18px #ff6a10,0 3px 0 #300;opacity:0;pointer-events:none}
+#msg.go{animation:rs 1.6s ease-out forwards}
+@keyframes rs{0%{opacity:0;transform:scale(.4)}12%{opacity:1;transform:scale(1.15)}22%{transform:scale(1)}80%{opacity:1}100%{opacity:0;transform:scale(1.05)}}
+#guide{background:#111e;border:2px solid #666;border-radius:10px;padding:16px 18px;max-width:420px;width:100%;text-align:left;font-size:15px;line-height:1.7;max-height:80vh;overflow:auto}
+#guide h3{margin:8px 0 4px;color:#ffd24a}
+#guide kbd{background:#333;border:1px solid #666;border-radius:4px;padding:1px 7px;font-size:13px}
+.hide{display:none!important}
+#hint{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 18px);left:0;right:0;text-align:center;color:#999;font-size:14px;pointer-events:none;transition:opacity 1s}
+</style></head><body>
+<canvas id="c"></canvas>
+<div id="top">
+ <div style="display:flex;align-items:center;gap:10px"><button id="gb" aria-label="설명서"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H12v17H5.5A1.5 1.5 0 0 0 4 21.5zM20 4.5A1.5 1.5 0 0 0 18.5 3H12v17h6.5a1.5 1.5 0 0 1 1.5 1.5z"/></svg></button><div id="best">최고 0</div></div>
+ <button id="re" class="hide" aria-label="이름 바꾸기">↺</button>
+</div>
+<div id="combo"><span id="cn">0</span><div id="cl">COMBO</div></div>
+<div id="res"></div><div id="msg"></div>
+<div id="hint" style="opacity:0">화면을 눌러서 때려!</div>
+
+<div id="st" class="ov" style="background:#000">
+ 
+ <h1>OLD GYM</h1>
+ <button class="btn" id="go">문 열고 들어가기</button>
+</div>
+<div id="nb" class="ov hide">
+ <div style="background:#000b;padding:22px;border-radius:12px;display:flex;flex-direction:column;gap:14px;align-items:center">
+  <div style="font-size:18px;font-weight:700">샌드백이 될 자를 적으시오</div>
+  <input id="nm" maxlength="12" placeholder="이름" autocomplete="off">
+  <button class="btn" id="ok">글러브 끼기</button>
+ </div>
+</div>
+<div id="gp" class="ov hide" style="background:#000a">
+ <div id="guide">
+  <b style="font-size:18px">조작 방법</b>
+  <h3>📱 폰</h3>
+  가운데 누르기(꾹) = 원투 원투<br>
+  왼쪽 위 = 왼쪽 훅 · 오른쪽 위 = 오른쪽 훅<br>
+  왼쪽 아래 = 왼쪽 바디훅 · 오른쪽 아래 = 오른쪽 바디훅
+  <h3>💻 컴퓨터</h3>
+  <kbd>Space</kbd> 원투 원투 (꾹)<br>
+  <kbd>D</kbd> 왼쪽 훅 · <kbd>K</kbd> 오른쪽 훅<br>
+  <kbd>F</kbd> 왼쪽 바디훅 · <kbd>J</kbd> 오른쪽 바디훅<br>
+  마우스 클릭도 폰이랑 같은 영역으로 때릴 수 있어
+  <h3>콤보</h3>
+  때릴 때마다 콤보가 쌓여. 1초 멈추면 끝나고 결과가 뜨는 거야.
+  <div style="text-align:center;margin-top:14px"><button class="btn" id="gx">닫기</button></div>
+ </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const $=id=>document.getElementById(id),V=(x,y,z)=>new THREE.Vector3(x,y,z);
+const R=new THREE.WebGLRenderer({canvas:$('c'),antialias:true});
+R.setPixelRatio(Math.min(devicePixelRatio,2));
+const S=new THREE.Scene();S.background=new THREE.Color(0x040302);S.fog=new THREE.Fog(0x040302,5,15);
+const C=new THREE.PerspectiveCamera(62,1,.1,50);C.position.set(0,1.5,11);S.add(C);
+function rs(){R.setSize(innerWidth,innerHeight,false);C.aspect=innerWidth/innerHeight;C.updateProjectionMatrix()}
+addEventListener('resize',rs);rs();
+
+S.add(new THREE.AmbientLight(0x2a221c,.9));
+const bulb=new THREE.PointLight(0xffb866,1.5,10,1.5);bulb.position.set(0,3.9,.5);S.add(bulb);
+const out=new THREE.PointLight(0x6677aa,.5,9,1.5);out.position.set(0,3,8.5);S.add(out);
+C.add(new THREE.PointLight(0xffd9a0,.45,5));
+
+const mk=(w,h,d,c,x,y,z)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:c,roughness:.95}));m.position.set(x,y,z);S.add(m);return m};
+mk(10,.2,24,0x2b2723,0,-.1,3);mk(10,5,.2,0x3a342e,0,2.5,-5);
+mk(.2,5,10,0x38322c,-5,2.5,0);mk(.2,5,10,0x38322c,5,2.5,0);mk(10,.2,10,0x1c1916,0,5,0);
+mk(4.2,5,.3,0x3a342e,-2.9,2.5,5);mk(4.2,5,.3,0x3a342e,2.9,2.5,5);mk(1.6,2.2,.3,0x3a342e,0,3.9,5);
+mk(10,.15,.05,0x6b1e1a,0,1.2,-4.88);
+const dm=new THREE.MeshStandardMaterial({color:0x5a3a24,roughness:.8});
+function door(hx,off){const g=new THREE.Group();g.position.set(hx,0,4.95);const m=new THREE.Mesh(new THREE.BoxGeometry(.8,2.8,.1),dm);m.position.set(off,1.4,0);g.add(m);S.add(g);return g}
+const DL=door(-.8,.4),DR=door(.8,-.4);
+(()=>{const c=document.createElement('canvas');c.width=512;c.height=128;const x=c.getContext('2d');x.fillStyle='#14100e';x.fillRect(0,0,512,128);
+x.font='900 64px Impact,sans-serif';x.fillStyle='#c9b98a';x.textAlign='center';x.textBaseline='middle';x.fillText('BOXING GYM',256,68);
+const m=new THREE.Mesh(new THREE.PlaneGeometry(3.2,.8),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c)}));m.position.set(0,4.5,5.17);S.add(m)})();
+
+// sandbag
+const G=new THREE.Group();G.position.set(0,3,0);S.add(G);
+const chain=new THREE.Mesh(new THREE.CylinderGeometry(.015,.015,.4),new THREE.MeshStandardMaterial({color:0x777777}));chain.position.y=-.2;G.add(chain);
+const bg=new THREE.CylinderGeometry(.42,.42,1.9,32,30,false);
+const P=bg.attributes.position,N=P.count,ox=new Float32Array(N),oy=new Float32Array(N),oz=new Float32Array(N),th=new Float32Array(N);
+for(let i=0;i<N;i++){ox[i]=P.getX(i);oy[i]=P.getY(i);oz[i]=P.getZ(i);th[i]=Math.atan2(ox[i],oz[i])}
+const bcv=document.createElement('canvas');bcv.width=1024;bcv.height=512;
+const tex=new THREE.CanvasTexture(bcv);
+const bm=new THREE.MeshStandardMaterial({map:tex,roughness:.7,emissive:0x000000});
+const bag=new THREE.Mesh(bg,bm);bag.position.y=-1.35;bag.rotation.y=Math.PI;G.add(bag);
+function drawBag(name){const x=bcv.getContext('2d');x.fillStyle='#5a3322';x.fillRect(0,0,1024,512);
+for(let i=0;i<500;i++){x.fillStyle=Math.random()<.5?'rgba(0,0,0,.07)':'rgba(140,90,55,.07)';x.fillRect(Math.random()*1024,Math.random()*512,Math.random()*40,Math.random()*4)}
+x.fillStyle='#2b1810';x.fillRect(0,36,1024,14);x.fillRect(0,462,1024,14);
+x.save();x.translate(512,250);x.scale(.7,1);x.textAlign='center';x.textBaseline='middle';
+let fs=120;x.font=`900 ${fs}px Impact,'Apple SD Gothic Neo',sans-serif`;
+while(x.measureText(name).width>560&&fs>28){fs-=6;x.font=`900 ${fs}px Impact,'Apple SD Gothic Neo',sans-serif`}
+x.lineWidth=12;x.strokeStyle='#2a0a06';x.strokeText(name,0,0);x.fillStyle='#e8e2d4';x.fillText(name,0,0);x.restore();tex.needsUpdate=true}
+drawBag('');
+
+const dents=[];
+function deform(){for(let i=0;i<N;i++){let g=0;const t=th[i],y=oy[i];
+for(const d of dents){const a=Math.atan2(Math.sin(t-d.t),Math.cos(t-d.t))*.42,b=y-d.y;g+=d.a*Math.exp(-(a*a+b*b)/d.s)}
+g=Math.min(g,.2);const k=1-g/.42;P.setXYZ(i,ox[i]*k,oy[i],oz[i]*k)}
+P.needsUpdate=true;bg.computeVertexNormals()}
+
+// gloves
+function glove(sx){const g=new THREE.Group(),m=new THREE.MeshStandardMaterial({color:0xb01818,roughness:.45});
+const f=new THREE.Mesh(new THREE.SphereGeometry(.17,20,16),m);f.scale.set(1,.95,1.2);
+const t=new THREE.Mesh(new THREE.SphereGeometry(.07,12,10),m);t.position.set(-sx*.15,.02,.02);
+const c=new THREE.Mesh(new THREE.CylinderGeometry(.11,.12,.22,16),new THREE.MeshStandardMaterial({color:0xeeeeee,roughness:.7}));c.rotation.x=Math.PI/2;c.position.z=.25;
+g.add(f,t,c);C.add(g);return{g,sx,t:-1,kind:'',hit:false}}
+const GL=glove(-1),GR=glove(1);
+const ftc=document.createElement('canvas');ftc.width=ftc.height=64;{const x=ftc.getContext('2d'),g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,220,1)');g.addColorStop(.35,'rgba(255,160,40,.8)');g.addColorStop(1,'rgba(255,60,0,0)');x.fillStyle=g;x.fillRect(0,0,64,64)}
+const ftex=new THREE.CanvasTexture(ftc),FC=[0,6,12,20,32,48],FCOL=[0,0xff9a30,0xff7a18,0xff5a10,0xff3a08,0xffb030];
+[GL,GR].forEach(o=>{o.fire=[];for(let i=0;i<48;i++){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:ftex,blending:THREE.AdditiveBlending,transparent:true,depthWrite:false,fog:false}));s.visible=false;s.userData={l:0,m:1,vy:0};o.g.add(s);o.fire.push(s)}
+o.fl=new THREE.PointLight(0xff6a10,0,3);o.g.add(o.fl)});
+function fireTier(c){return c>=10000?5:c>=5000?4:c>=1000?3:c>=500?2:c>=100?1:0}
+function updFire(o,dt,tr){const n=FC[tr];o.fl.intensity=tr*.5;
+for(let i=0;i<48;i++){const s=o.fire[i];if(i>=n){s.visible=false;continue}
+const u=s.userData;u.l-=dt;if(u.l<=0){u.m=.25+Math.random()*.3;u.l=u.m;u.vy=.5+Math.random()*.6+tr*.2;s.position.set((Math.random()-.5)*.22,(Math.random()-.3)*.15,(Math.random()-.5)*.3);s.material.color.setHex(FCOL[tr])}
+s.visible=true;s.position.y+=u.vy*dt;const r=u.l/u.m;s.material.opacity=r;s.scale.setScalar((.2+tr*.05)*(.4+r))}}
+let rise=0,riseT=0;
+
+// audio
+let AC;
+function snd(p){if(!AC)return;const t=AC.currentTime,j=1+Math.random()*.15;
+const o=AC.createOscillator(),g=AC.createGain();o.type='sine';
+o.frequency.setValueAtTime(210*j,t);o.frequency.exponentialRampToValueAtTime(70,t+.05);
+g.gain.setValueAtTime(1.4,t);g.gain.exponentialRampToValueAtTime(.001,t+.09);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+.12);
+const o3=AC.createOscillator(),g3=AC.createGain();o3.frequency.setValueAtTime(75,t);o3.frequency.exponentialRampToValueAtTime(40,t+.12);g3.gain.setValueAtTime(.9,t);g3.gain.exponentialRampToValueAtTime(.001,t+.14);o3.connect(g3);g3.connect(AC.destination);o3.start(t);o3.stop(t+.16);
+const L=Math.floor(44100*.05),b=AC.createBuffer(1,L,44100),d=b.getChannelData(0);for(let i=0;i<L;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/L,4);
+const n=AC.createBufferSource(),f=AC.createBiquadFilter(),ng=AC.createGain();n.buffer=b;f.type='bandpass';f.frequency.value=700*j;f.Q.value=.8;ng.gain.value=1.6*p;n.connect(f);f.connect(ng);ng.connect(AC.destination);n.start(t);
+}
+function snd2Old(p){if(!AC)return;const t=AC.currentTime;
+const o=AC.createOscillator(),g=AC.createGain();o.type='sine';
+o.frequency.setValueAtTime(150*p+60,t);o.frequency.exponentialRampToValueAtTime(45,t+.09);
+g.gain.setValueAtTime(1.3,t);g.gain.exponentialRampToValueAtTime(.001,t+.16);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+.2);
+const L=Math.floor(44100*.07),b=AC.createBuffer(1,L,44100),d=b.getChannelData(0);for(let i=0;i<L;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/L,3);
+const n=AC.createBufferSource(),f=AC.createBiquadFilter(),ng=AC.createGain();n.buffer=b;f.type='lowpass';f.frequency.value=1100;ng.gain.value=1.1*p;n.connect(f);f.connect(ng);ng.connect(AC.destination);n.start(t);
+chainSnd(t+.05,p)}
+function sndOld(p){if(!AC)return;const t=AC.currentTime;
+const o=AC.createOscillator(),g=AC.createGain();o.type='triangle';
+o.frequency.setValueAtTime(90*p+45,t);o.frequency.exponentialRampToValueAtTime(28,t+.35);
+g.gain.setValueAtTime(1.2,t);g.gain.exponentialRampToValueAtTime(.001,t+.4);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+.45);
+const o2=AC.createOscillator(),g2=AC.createGain();o2.frequency.setValueAtTime(55,t);o2.frequency.exponentialRampToValueAtTime(30,t+.5);g2.gain.setValueAtTime(.9,t);g2.gain.exponentialRampToValueAtTime(.001,t+.5);o2.connect(g2);g2.connect(AC.destination);o2.start(t);o2.stop(t+.55);
+const L=Math.floor(44100*.12),b=AC.createBuffer(1,L,44100),d=b.getChannelData(0);for(let i=0;i<L;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/L,2);
+const n=AC.createBufferSource(),f=AC.createBiquadFilter(),ng=AC.createGain();n.buffer=b;f.type='lowpass';f.frequency.value=700;ng.gain.value=.9*p;n.connect(f);f.connect(ng);ng.connect(AC.destination);n.start(t);
+chainSnd(t+.03,p)}
+let NB;function nb(){if(!NB){NB=AC.createBuffer(1,4410,44100);const d=NB.getChannelData(0);for(let i=0;i<4410;i++)d[i]=Math.random()*2-1}return NB}
+function chainSnd(t,p){const n=7+Math.floor(Math.random()*5);for(let k=0;k<n;k++){const tt=t+Math.pow(Math.random(),1.3)*.4,fq=2400+Math.random()*3800,s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();
+s.buffer=nb();f.type='bandpass';f.frequency.value=fq;f.Q.value=9;g.gain.setValueAtTime(.8*p*(.4+Math.random()*.6),tt);g.gain.exponentialRampToValueAtTime(.0001,tt+.04+Math.random()*.05);s.connect(f);f.connect(g);g.connect(AC.destination);s.start(tt,0,.12);
+const o=AC.createOscillator(),g2=AC.createGain();o.frequency.value=fq*.62;g2.gain.setValueAtTime(.008*p,tt);g2.gain.exponentialRampToValueAtTime(.0001,tt+.07);o.connect(g2);g2.connect(AC.destination);o.start(tt);o.stop(tt+.1)}}
+function chain2Old(t,p){for(let k=0;k<4;k++){const tt=t+k*.06+Math.random()*.03,base=2200+Math.random()*1400;[1,2.3,3.9].forEach((r,j)=>{const o=AC.createOscillator(),g=AC.createGain();o.type='sine';o.frequency.value=base*r;g.gain.setValueAtTime(.014*p/(j+1),tt);g.gain.exponentialRampToValueAtTime(.0001,tt+.09+Math.random()*.05);o.connect(g);g.connect(AC.destination);o.start(tt);o.stop(tt+.15)})}}
+function chainOld(t,p){for(let k=0;k<5;k++){const tt=t+k*.045+Math.random()*.02,o=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain();o.type='square';o.frequency.value=2200+Math.random()*2500;f.type='highpass';f.frequency.value=1800;g.gain.setValueAtTime(.012*p*(1-k*.15),tt);g.gain.exponentialRampToValueAtTime(.0001,tt+.05);o.connect(f);f.connect(g);g.connect(AC.destination);o.start(tt);o.stop(tt+.06)}}
+function creak(){if(!AC)return;const t=AC.currentTime;
+const nz=(d,fq,ty,gv,st,at)=>{const L=Math.floor(44100*d),b=AC.createBuffer(1,L,44100),x=b.getChannelData(0);for(let i=0;i<L;i++)x[i]=Math.random()*2-1;const n=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();n.buffer=b;f.type=ty;f.frequency.value=fq;g.gain.setValueAtTime(.0001,st);g.gain.linearRampToValueAtTime(gv,st+at);g.gain.exponentialRampToValueAtTime(.0001,st+d);n.connect(f);f.connect(g);g.connect(AC.destination);n.start(st)};
+nz(.03,3000,'highpass',.35,t,.003);nz(.04,1800,'bandpass',.3,t+.08,.003);
+nz(1.7,320,'bandpass',.14,t+.25,.7);
+nz(.12,250,'lowpass',.8,t+2.05,.008);
+const o=AC.createOscillator(),g=AC.createGain();o.frequency.setValueAtTime(95,t+2.05);o.frequency.exponentialRampToValueAtTime(45,t+2.2);g.gain.setValueAtTime(.0001,t+2.05);g.gain.linearRampToValueAtTime(.6,t+2.06);g.gain.exponentialRampToValueAtTime(.0001,t+2.25);o.connect(g);g.connect(AC.destination);o.start(t+2.05);o.stop(t+2.3)}
+function creak4Old(){if(!AC)return;const t=AC.currentTime;
+const nz=(d,fq,ty,gv,st)=>{const L=Math.floor(44100*d),b=AC.createBuffer(1,L,44100),x=b.getChannelData(0);for(let i=0;i<L;i++)x[i]=Math.random()*2-1;const n=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();n.buffer=b;f.type=ty;f.frequency.value=fq;g.gain.setValueAtTime(gv,st);g.gain.exponentialRampToValueAtTime(.0001,st+d);n.connect(f);f.connect(g);g.connect(AC.destination);n.start(st)};
+nz(.05,2500,'highpass',.3,t);
+const o=AC.createOscillator(),f=AC.createBiquadFilter(),g=AC.createGain(),l=AC.createOscillator(),lg=AC.createGain();
+o.type='sawtooth';o.frequency.setValueAtTime(380,t+.2);o.frequency.linearRampToValueAtTime(760,t+1.5);
+l.frequency.value=9;lg.gain.value=35;l.connect(lg);lg.connect(o.frequency);
+f.type='bandpass';f.frequency.value=1100;f.Q.value=4;
+g.gain.setValueAtTime(.0001,t+.2);g.gain.linearRampToValueAtTime(.09,t+.5);g.gain.linearRampToValueAtTime(.06,t+1.2);g.gain.linearRampToValueAtTime(0,t+1.8);
+o.connect(f);f.connect(g);g.connect(AC.destination);o.start(t+.2);l.start(t+.2);o.stop(t+1.9);l.stop(t+1.9);
+nz(.18,180,'lowpass',.8,t+1.95)}
+function creak3Old(){if(!AC)return;const t=AC.currentTime;
+const mkN=(d,fq,ty,gv,st,at)=>{const L=Math.floor(44100*d),b=AC.createBuffer(1,L,44100),x=b.getChannelData(0);for(let i=0;i<L;i++)x[i]=Math.random()*2-1;const n=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();n.buffer=b;f.type=ty;f.frequency.value=fq;g.gain.setValueAtTime(.0001,st);g.gain.linearRampToValueAtTime(gv,st+at);g.gain.exponentialRampToValueAtTime(.0001,st+d);n.connect(f);f.connect(g);g.connect(AC.destination);n.start(st)};
+mkN(.05,2500,'highpass',.3,t,.004);mkN(.9,500,'bandpass',.25,t+.15,.45);mkN(1.2,260,'lowpass',.25,t+.5,.5);mkN(.18,180,'lowpass',.8,t+1.95,.01);
+[1760,2349].forEach((fq,i)=>{const tt=t+.55+i*.09,o=AC.createOscillator(),g=AC.createGain();o.frequency.value=fq;g.gain.setValueAtTime(.06,tt);g.gain.exponentialRampToValueAtTime(.0001,tt+.7);o.connect(g);g.connect(AC.destination);o.start(tt);o.stop(tt+.8)})}
+function creak2Old(){if(!AC)return;const t=AC.currentTime;
+const mkN=(d,fq,ty,gv,st,at)=>{const L=Math.floor(44100*d),b=AC.createBuffer(1,L,44100),x=b.getChannelData(0);for(let i=0;i<L;i++)x[i]=Math.random()*2-1;const n=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();n.buffer=b;f.type=ty;f.frequency.value=fq;g.gain.setValueAtTime(.0001,st);g.gain.linearRampToValueAtTime(gv,st+at);g.gain.exponentialRampToValueAtTime(.0001,st+d);n.connect(f);f.connect(g);g.connect(AC.destination);n.start(st)};
+mkN(.06,2500,'highpass',.12,t,.005);mkN(1.6,350,'lowpass',.1,t+.1,.6);mkN(.15,200,'lowpass',.3,t+1.9,.01)}
+function creakOld(){if(!AC)return;const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type='sawtooth';
+o.frequency.setValueAtTime(90,t);o.frequency.linearRampToValueAtTime(55,t+2);g.gain.setValueAtTime(.05,t);g.gain.linearRampToValueAtTime(0,t+2.2);o.connect(g);g.connect(AC.destination);o.start(t);o.stop(t+2.3)}
+
+// game state
+const MSG=['대단한데?','진정해!','화가 많은걸?','뜨거워!!','아프겠다..','복싱선수야?','손이 안보여!'];
+let best=0;try{best=+localStorage.getItem('jb')||0}catch(e){}$('best').textContent='최고 '+best;
+let state='start',doorT=0,combo=0,last=0,popS=1,shake=0,flash=0,bx=0,bz=0,bvx=0,bvz=0,alt=0,timer=null;
+function impact(o){const k=o.kind,hook=k.length>1,body=k[1]==='B',pw=hook?1:.65;
+dents.push({t:Math.PI+o.sx*(hook?.55:.15),y:body?-.3:(hook?.5:.35),a:hook?.13:.09,s:.035});if(dents.length>7)dents.shift();
+bvx+=pw*1.3;if(hook)bvz+=-o.sx*1.3;
+shake=.03+.04*pw;flash=1;snd(pw);
+combo++;last=performance.now();$('cn').textContent=combo;$('combo').style.opacity=1;popS=1.4;
+if(combo>best){best=combo;$('best').textContent='최고 '+best;try{localStorage.setItem('jb',best)}catch(e){}}
+if(combo%100===0){const m=$('msg');m.textContent=MSG[Math.floor(Math.random()*MSG.length)];m.classList.remove('go');void m.offsetWidth;m.classList.add('go')}}
+function punch(kind){if(state!=='play'||rise<.85)return;const o=kind[0]==='L'?GL:GR;
+if(o.t>=0&&o.t<.5)return;o.t=0;o.kind=kind;o.hit=false}
+function startC(){if(timer)return;punch(alt++%2?'R':'L');timer=setInterval(()=>punch(alt++%2?'R':'L'),150)}
+function stopC(){clearInterval(timer);timer=null}
+function zone(e){const fx=e.clientX/innerWidth,fy=e.clientY/innerHeight;
+if(fx<.33)return fy>.5?'LB':'LH';if(fx>.66)return fy>.5?'RB':'RH';return'C'}
+const cv=$('c');
+cv.addEventListener('pointerdown',e=>{const z=zone(e);z==='C'?startC():punch(z)});
+['pointerup','pointercancel','pointerleave'].forEach(n=>cv.addEventListener(n,stopC));
+const KM={KeyD:'LH',KeyF:'LB',KeyJ:'RB',KeyK:'RH'};
+addEventListener('keydown',e=>{if(state!=='play')return;
+if(e.code==='Space'){e.preventDefault();if(!e.repeat)startC();return}
+if(!e.repeat&&KM[e.code])punch(KM[e.code])});
+addEventListener('keyup',e=>{if(e.code==='Space')stopC()});
+
+$('go').onclick=()=>{AC=new(window.AudioContext||window.webkitAudioContext)();$('st').classList.add('hide');state='door';doorT=0;setTimeout(creak,500)};
+function showName(){state='name';riseT=0;stopC();$('nb').classList.remove('hide');$('re').classList.add('hide');$('hint').style.opacity=0}
+$('ok').onclick=()=>{drawBag($('nm').value.trim()||'???');$('nm').blur();if(document.activeElement)document.activeElement.blur();$('nb').classList.add('hide');state='play';riseT=1;$('re').classList.remove('hide');
+$('hint').style.opacity=1;setTimeout(()=>$('hint').style.opacity=0,4000)};
+$('nm').addEventListener('keydown',e=>{if(e.key==='Enter')$('ok').onclick()});
+$('re').onclick=showName;
+$('gb').onclick=()=>$('gp').classList.remove('hide');$('gx').onclick=()=>$('gp').classList.add('hide');
+
+const ez=t=>t<0?0:t>1?1:t*t*(3-2*t),cl=(t)=>Math.max(0,Math.min(1,t));
+const REST=[V(-.34,-.4,-.75),V(.34,-.4,-.75)];
+function updGlove(o,i,dt){
+if(o.t>=0){o.t+=dt/.2;if(o.t>=.45&&!o.hit){o.hit=true;impact(o)}if(o.t>=1)o.t=-1}
+const e=o.t<0?0:Math.sin(Math.PI*o.t),hook=o.kind.length>1,body=o.kind[1]==='B';
+const r=REST[i],tx=o.sx*(hook?-.02:.08),ty=body?-.62:(hook?.5:-.05),tz=-1.5;
+let x=r.x+(tx-r.x)*e,y=r.y+(ty-r.y)*e,z=r.z+(tz-r.z)*e;
+if(hook&&o.t>=0)x+=o.sx*.5*Math.sin(Math.PI*o.t)*(1-e);
+y+=(1-rise)*-1.1;
+o.g.position.set(x,y,z);o.g.rotation.set(-.2*e,-o.sx*.25*(1-e)+(hook?o.sx*-.5*e:0),o.sx*.1)}
+
+let prev=performance.now();
+function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-prev)/1000);prev=now;
+if(state==='door'){doorT+=dt;const a=ez(cl((doorT-.6)/2))*1.6;DL.rotation.y=a;DR.rotation.y=-a;
+C.position.z=11+(2.4-11)*ez(cl((doorT-1.4)/3.8));if(doorT>5.3)showName()}
+rise+=(riseT-rise)*Math.min(1,dt*5);
+updGlove(GL,0,dt);updGlove(GR,1,dt);const ft=fireTier(combo);updFire(GL,dt,ft);updFire(GR,dt,ft);
+// bag physics
+bvx+=(-30*bx-2.2*bvx)*dt;bvz+=(-30*bz-2.2*bvz)*dt;bx+=bvx*dt;bz+=bvz*dt;G.rotation.x=bx;G.rotation.z=bz;
+if(dents.length){for(const d of dents)d.a*=Math.exp(-dt*.25);while(dents.length&&dents[0].a<.004)dents.shift();deform()}
+flash*=Math.exp(-dt*9);bm.emissive.setRGB(flash*.45,flash*.04,0);
+// combo
+popS+=(1-popS)*Math.min(1,dt*12);$('cn').style.transform=`scale(${popS})`;
+if(combo>0&&performance.now()-last>1000){if(combo>=2){const r=$('res');r.textContent=combo+' COMBO!';r.classList.remove('go');void r.offsetWidth;r.classList.add('go')}
+combo=0;$('combo').style.opacity=0}
+// camera
+C.position.x=(Math.random()-.5)*shake;C.position.y=1.5+(Math.random()-.5)*shake;shake*=Math.exp(-dt*14);
+C.lookAt(0,1.5,0);
+bulb.intensity=1.5+(Math.random()<.04?-.9:0)+Math.sin(now/300)*.1;
+R.render(S,C)}
+requestAnimationFrame(loop);
+</script></body></html>
